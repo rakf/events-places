@@ -13,4 +13,10 @@ npm start
 ````
 Open http://localhost:4200
 
+### Building
+````
+npm install
+ng build --prod --base-href http://localhost:80
+````
+
 ## Using server
