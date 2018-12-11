@@ -1,8 +1,7 @@
 <body>
 <div class = "form-login">
-  <input type="text" ngModel="username"  name="username" placeholder="Username" required="" autofocus="">
-  <input type="password" ngModel="password"  name="password" placeholder="Password" required="" autofocus="">
-
-  <button name="Submit" value="Login" (click)="login()">Вход</button>
+  <input type="text" [(ngModel)]="user.username" name="username" placeholder="Username" required="" autofocus="">
+  <input type="password" [(ngModel)]="user.password" name="password" placeholder="Password" required="" autofocus="">
+  <button name="Submit" class="button" [class.button-unready]="!readyToSend()" [disabled]="!readyToSend()" value="Login" (click)="login()">Вход</button>
 </div>
 </body>

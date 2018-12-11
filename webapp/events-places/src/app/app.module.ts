@@ -8,6 +8,7 @@ import {LoginComponent} from "./login/login.component";
 import {HttpClientModule} from "@angular/common/http";
 import {RegisterComponent} from "./register/register.component";
 import {CookieService} from "angular2-cookie/core";
+import {FormsModule} from "@angular/forms";
 
 @NgModule({
   declarations: [
@@ -18,6 +19,7 @@ import {CookieService} from "angular2-cookie/core";
   ],
   imports: [
     BrowserModule,
+    FormsModule,
     AppRoutingModule,
     HttpClientModule
   ],

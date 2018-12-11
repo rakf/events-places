@@ -1,6 +1,7 @@
 import {Component} from "@angular/core";
 import {HttpClient, HttpHeaders} from "@angular/common/http";
 import {Router} from "@angular/router";
+import {User} from "../datamodels/user";
 
 @Component({
   selector: 'app-register',
@@ -9,18 +10,24 @@ import {Router} from "@angular/router";
 })
 
 export class RegisterComponent {
-  public username: string;
-  public password: string;
+
+  acc_type = ['', 'организатор', 'арендодатель'];
+  user = new User('', '', '');
   private baseUrl = '/api/register';
   private headers: HttpHeaders = new HttpHeaders({'Content-Type': 'application/x-www-form-urlencoded'});
   constructor(private http: HttpClient, private router: Router) {
 
   }
 
-  login(): void {
+  readyToSend() {
+    return this.user.username.length !== 0 && this.user.password.length !== 0 && this.user.a_t.length !== 0;
+  }
+
+  register(): void {
+    console.log(this.user);
     const params = new URLSearchParams();
-    params.set('username', this.username);
-    params.set('password', this.password);
+    params.set('username', this.user.username);
+    params.set('password', this.user.password);
 
     this.http.post(this.baseUrl, params.toString(), {headers: this.headers, withCredentials: true}).subscribe(data => {
       if (data['response']['status'] === 'success') {

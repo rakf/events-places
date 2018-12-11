@@ -1,0 +1,97 @@
+$leftcolor: lightpink;
+$rightcolor: lightblue;
+
+.header-field {
+  top: 0;
+  position: fixed;
+  height: 10%;
+  width: 100%;
+  left: 0;
+  background-color: lightgoldenrodyellow;
+}
+
+.login-field {
+  left: 0;
+}
+
+.filter-field {
+  width: 20%;
+  background-color: lightgray;
+  height: 100%;
+  position: fixed;
+}
+
+.v-field {
+  width: 80%;
+  left: 20%;
+  background-color: lightgreen;
+  height: 100%;
+  position: fixed;
+}
+
+.content-field {
+  height: 90%;
+  width: 100%;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+}
+
+.choice-field {
+  height: 10%;
+  width: 100%;
+  position: fixed;
+  left: 0;
+  bottom: 80%;
+}
+
+.var-field {
+  height: 80%;
+  width: 100%;
+  position: fixed;
+  left: 0;
+  bottom: 0;
+}
+
+.left-field, .right-field {
+  height: 100%;
+  width: 50%;
+}
+
+.left-field {
+  float: left;
+  background-color: $leftcolor;
+}
+
+.left-field:hover {
+  background-color: darken($leftcolor, 50%);
+  cursor: pointer;
+}
+
+.ev-chosen {
+  background-color: darken($leftcolor, 50%);
+}
+
+.right-field {
+  float: right;
+  background-color: $rightcolor;
+}
+
+.right-field:hover {
+  background-color: darken($rightcolor, 50%);
+  cursor: pointer;
+}
+
+.pl-chosen {
+  background-color: darken($rightcolor, 50%);
+}
+
+.field-text {
+  left: 50%;
+  top: 50%;
+  position: relative;
+}
+
+.hidden {
+  display: none;
+}

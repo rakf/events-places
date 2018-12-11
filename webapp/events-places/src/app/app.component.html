@@ -1,4 +1,40 @@
-<body>
-<button name="Submit" value="Login" (click)="toLogin()">Вход</button>
-<button name="Submit" value="Register" (click)="toRegister()">Регистрация</button>
-</body>
+<div class="header-field">
+  <div class="log-reg" [class.hidden]="!cookieSet()">
+    <div class="login-field">
+      <app-login></app-login>
+    </div>
+    <button name="Submit" class="reg-button" value="Register" (click)="toRegister()">Регистрация</button>
+  </div>
+  <div class="home" [class.hidden]="cookieSet()">
+    <div class="field-text">Ass</div>
+  </div>
+</div>
+<div [class.hidden]="hideChoice()">
+  <div class="content-field">
+    <div class="left-field" (click)="setState('events')">
+      <div class="field-text">Events</div>
+    </div>
+    <div class="right-field" (click)="setState('places')">
+      <div class="field-text">Places</div>
+    </div>
+  </div>
+</div>
+<div [class.hidden]="!hideChoice()">
+  <div class="choice-field">
+    <div class="left-field" [class.ev-chosen]="state=='events'" (click)="setState('events')">
+      <div class="field-text">Events</div>
+    </div>
+    <div class="right-field" [class.pl-chosen]="state=='places'" (click)="setState('places')">
+      <div class="field-text">Places</div>
+    </div>
+  </div>
+  <div class="var-field">
+    <div class="filter-field">
+      <div class="field-text">Future filters</div>
+    </div>
+    <div class="v-field">
+      <div class="field-text">{{state}}</div>
+    </div>
+  </div>
+</div>
+
