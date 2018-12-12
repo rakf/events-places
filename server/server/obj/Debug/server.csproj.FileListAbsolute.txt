@@ -1,0 +1,11 @@
+c:\users\user\source\repos\server\server\bin\Debug\server.exe.config
+c:\users\user\source\repos\server\server\bin\Debug\server.exe
+c:\users\user\source\repos\server\server\bin\Debug\server.pdb
+c:\users\user\source\repos\server\server\obj\Debug\server.csprojAssemblyReference.cache
+c:\users\user\source\repos\server\server\obj\Debug\server.csproj.CoreCompileInputs.cache
+c:\users\user\source\repos\server\server\obj\Debug\server.exe
+c:\users\user\source\repos\server\server\obj\Debug\server.pdb
+C:\Users\user\source\repos\server\server\bin\Debug\Newtonsoft.Json.dll
+C:\Users\user\source\repos\server\server\bin\Debug\Npgsql.dll
+C:\Users\user\source\repos\server\server\bin\Debug\Mono.Security.dll
+C:\Users\user\source\repos\server\server\obj\Debug\server.csproj.CopyComplete
