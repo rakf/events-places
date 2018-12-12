@@ -11,7 +11,7 @@ namespace server
     class Handlers
     {
         static String connString = "Server=localhost;Port=5432;User=postgres;Password=12345678;Database=Webapp;";
-        public static void GetRequest(HttpRequest request)
+        public static HttpResponse GetRequest(HttpRequest request)
         {
             switch (request.Url)
             {
@@ -21,13 +21,18 @@ namespace server
                     break;
                 case "/api/register":
                     Console.WriteLine("register");
-                    ARegister(request.Content);
+                    return ARegister(request.Content);
                     break;
                 default:
                     Console.WriteLine("Default case");
                     break;
             }
-            
+            return new HttpResponse()
+            {
+                ReasonPhrase = "NotFound",
+                StatusCode = "404"
+            };
+
         }
         /*public static void BD_open()
         {
@@ -36,14 +41,16 @@ namespace server
             npgSqlConnection.Open();
             Console.WriteLine("Connect BD - ok");
         }*/
-        public static void ARegister(String data)
+        public static HttpResponse ARegister(String data)
         {
             char[] delimiterChars = { '=', '&' };
             string[] words = data.Split(delimiterChars);
-
+            bool status = false;//true - успех 
             //INSERT INTO registred values(default,'myname221','12345',2);
             Console.WriteLine("Login: {0}, Pass: {1}", words[1], words[3]);
             string hash;
+
+            // Хеш md5
             using (System.Security.Cryptography.MD5 md5 = System.Security.Cryptography.MD5.Create())
             {
                 byte[] inputBytes = System.Text.Encoding.ASCII.GetBytes(words[3]);
@@ -57,15 +64,61 @@ namespace server
                 }
                  hash = sb.ToString();
             }
-
-            using (var conn = new NpgsqlConnection(connString))
+            //Добавление в базу
+            try
             {
-                conn.Open();
+                using (var conn = new NpgsqlConnection(connString))
+                {
+                    conn.Open();
 
-                NpgsqlCommand cmd = new NpgsqlCommand("INSERT INTO registred values(default,'"+ words[1] +"', '"+ hash +"',2);", conn);
-                cmd.ExecuteNonQuery();
+                    NpgsqlCommand cmd = new NpgsqlCommand("INSERT INTO registred values(default,'" + words[1] + "', '" + hash + "',2);", conn);
+                    if(cmd.ExecuteNonQuery() == 1)
+                    {
+                        status = true;
+                    }
+                    conn.Close();
+                }
             }
-               
+            catch(Npgsql.NpgsqlException ex)
+            {
+                if (ex.Code == "23505")
+                {
+                    status = false; 
+                }
+                Console.WriteLine(ex.Message);
+            }
+            //Формирование запроса 
+            string StatusCode;
+            string StatusText;
+            string StatusJson;
+            if (status)
+            {
+                StatusCode = "200";
+                StatusText = "Ok";
+                StatusJson = "status:success";
+            }
+            else
+            {
+                StatusCode = "400";
+                StatusText = "BadRequest";
+                StatusJson = "status:fail";
+            }
+            HttpResponse response = new HttpResponse
+            {
+                ReasonPhrase = StatusText,
+                StatusCode = StatusCode,
+                ContentAsUTF8 = JsonConvert.SerializeObject(StatusJson)
+
+
+            };
+            if(status)
+             response.Headers.Add("Set-Cookie", Base64Encode(words[1]));
+            return response;
+        }
+        public static string Base64Encode(string plainText)
+        {
+            var plainTextBytes = System.Text.Encoding.UTF8.GetBytes(plainText);
+            return System.Convert.ToBase64String(plainTextBytes);
         }
 
     }

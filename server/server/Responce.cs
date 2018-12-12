@@ -8,36 +8,60 @@ using System.Threading.Tasks;
 
 namespace server
 {
-    class Response
+
+    public enum HttpStatusCode
     {
-        Byte[] data = null;
-        String status;
-        String mime;
-        private Response(String status, String mime, Byte[] data)
+        // for a full list of status codes, see..
+        //https://en.wikipedia.org/wiki/List_of_HTTP_status_codes
+
+        Continue = 100,
+
+        Ok = 200,
+        Created = 201,
+        Accepted = 202,
+        MovedPermanently = 301,
+        Found = 302,
+        NotModified = 304,
+        BadRequest = 400,
+        Forbidden = 403,
+        NotFound = 404,
+        MethodNotAllowed = 405,
+        InternalServerError = 500
+    }
+
+    public class HttpResponse
+    {
+        public string StatusCode { get; set; }
+        public string ReasonPhrase { get; set; }
+        public byte[] Content { get; set; }
+
+        public Dictionary<string, string> Headers { get; set; }
+
+        public string ContentAsUTF8
         {
-            this.data = data;
-            this.status = status;
-            this.mime = mime;
+            set
+            {
+                this.setContent(value, encoding: Encoding.UTF8);
+            }
         }
-        
-        
-
-        private static Response NotWork( String status)
+        public void setContent(string content, Encoding encoding = null)
         {
-            return new Response(status, "text/html", null);
+            if (encoding == null)
+            {
+                encoding = Encoding.UTF8;
+            }
+            Content = encoding.GetBytes(content);
         }
-        public void Post(NetworkStream stream)
+
+        public HttpResponse()
         {
-            StreamWriter writer = new StreamWriter(stream);
+            this.Headers = new Dictionary<string, string>();
+        }
 
-            Console.WriteLine(String.Format("Response:\r\n{0} {1}\r\nServer: {2}\r\nContent-Language: ru\r\nContent-Type: {3}\r\nAccept-Ranges: bytes\r\nContent-Length: {4}\r\nConnection: close\r\n",
-                HttpServer.VERSION, status, HttpServer.SERVERNAME, mime, data.Length));
-            Console.WriteLine(Encoding.UTF8.GetString(data, 0, data.Length));
-
-            writer.WriteLine(String.Format("{0} {1}\r\nServer: {2}\r\nContent-Language: ru\r\nContent-Type: {3}\r\nAccept-Ranges: bytes\r\nContent-Length: {4}\r\nConnection: close\r\n",
-                HttpServer.VERSION, status, HttpServer.SERVERNAME, mime, data.Length));
-            writer.Flush();
-            stream.Write(data, 0, data.Length);
+        // informational only tostring...
+        public override string ToString()
+        {
+            return string.Format("HTTP status {0} {1}", this.StatusCode, this.ReasonPhrase);
         }
     }
 }

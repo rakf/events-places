@@ -9,11 +9,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Text.RegularExpressions;
 namespace server
 {
+    
     class HttpServer
     {
-
+        private List<Route> Routes = new List<Route>();
         public const String MSG_DIR = "/root/msg/";
         public const String WEB_DIR = "/root/web/";
         public const String VERSION = "HTTP/1.0";
@@ -55,15 +57,19 @@ namespace server
             Stream inputStream = GetInputStream(client);
             Stream outputStream = GetOutputStream(client);
             HttpRequest request = GetRequest(inputStream, outputStream);
-            /*StreamReader reader = new StreamReader(client.GetStream());
-            String msg = "";
-            while (reader.Peek() != -1)
-            {
-                msg += reader.ReadLine() + "\n";
-            }*/
+          
             Console.WriteLine(request.Url);
             Console.WriteLine(request.Content);
-            Handlers.GetRequest(request);
+            HttpResponse response = Handlers.GetRequest(request);
+
+            WriteResponse(outputStream, response);
+
+            outputStream.Flush();
+            outputStream.Close();
+            outputStream = null;
+
+            inputStream.Close();
+            inputStream = null;
             // Request request = Request.GetRequest(msg);
             // Response response = Response.From(request);
             // response.Post(client.GetStream());
@@ -158,6 +164,33 @@ namespace server
         protected virtual Stream GetInputStream(TcpClient tcpClient)
         {
             return tcpClient.GetStream();
+        }
+
+        private static void WriteResponse(Stream stream, HttpResponse response)
+        {
+            if (response.Content == null)
+            {
+                response.Content = new byte[] { };
+            }
+
+            // default to text/html content type
+            if (!response.Headers.ContainsKey("Content-Type"))
+            {
+                response.Headers["Content-Type"] = "text/html";
+            }
+
+            response.Headers["Content-Length"] = response.Content.Length.ToString();
+
+            Write(stream, string.Format("HTTP/1.0 {0} {1}\r\n", response.StatusCode, response.ReasonPhrase));
+            Write(stream, string.Join("\r\n", response.Headers.Select(x => string.Format("{0}: {1}", x.Key, x.Value))));
+            Write(stream, "\r\n\r\n");
+
+            stream.Write(response.Content, 0, response.Content.Length);
+        }
+        private static void Write(Stream stream, string text)
+        {
+            byte[] bytes = Encoding.UTF8.GetBytes(text);
+            stream.Write(bytes, 0, bytes.Length);
         }
     }
 }
