@@ -15,7 +15,6 @@ namespace server
     
     class HttpServer
     {
-        private List<Route> Routes = new List<Route>();
         public const String MSG_DIR = "/root/msg/";
         public const String WEB_DIR = "/root/web/";
         public const String VERSION = "HTTP/1.0";
