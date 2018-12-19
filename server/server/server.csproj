@@ -51,9 +51,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Handlers.cs" />
-    <Compile Include="HttpBuilder.cs" />
     <Compile Include="HttpRequest.cs" />
     <Compile Include="HttpServer.cs" />
+    <Compile Include="places.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Responce.cs" />
