@@ -32,15 +32,15 @@ namespace server
                     break;
                 case "/api/places":
                     Console.WriteLine("places");
-                    return APlaсes(request.Content);
+                    return APlaсes(request);
                     break;
                 case "/api/placesupdate":
-                    Console.WriteLine("places");
+                    Console.WriteLine("placesupdate");
                     //return APlaсesupdate(request.Content);
                     break;
                 case "/api/events":
-                    Console.WriteLine("places");
-                    //return APlaсesupdate(request.Content);
+                    Console.WriteLine("events");
+                    return AEvents(request.Content);
                     break;
                 /*case "/api/placesupdate":
                     Console.WriteLine("places");
@@ -246,7 +246,7 @@ namespace server
             }
             return hash;
         }
-        public static HttpResponse APlaсes(String data)
+        public static HttpResponse APlaсes(HttpRequest data)
         {
             bool status = false;//true - успех 
             List<string> costs = new List<string>();
@@ -254,21 +254,191 @@ namespace server
             List<string> room_name = new List<string>();
             List<string> square = new List<string>();
             List<string> address = new List<string>();
+            List<Dictionary<string, string>> Data = new List<Dictionary<string, string>>();
+            ListDictionary list = new ListDictionary();
+            if (data.Method != "POST")
+            {
+                try
+                {
+
+                    using (var conn = new NpgsqlConnection(connString))
+                    {
+                        conn.Open();
+                        using (var cmd = new NpgsqlCommand(" SELECT r.costs, r.landlord, r.room_name, rc.quare, rc.address FROM room r join room_cost rc on r.costs = rc.costs;", conn))
+                        using (var reader = cmd.ExecuteReader())
+                            while (reader.Read())
+                            {
+                                costs.Add((reader.GetInt32(0)).ToString());
+                                landlord.Add(reader.GetString(1));
+                                room_name.Add(reader.GetString(2));
+                                square.Add((reader.GetInt32(3)).ToString());
+                                address.Add(reader.GetString(4));
+                            }
+                        status = true;
+                        conn.Close();
+                    }
+                }
+                catch (Npgsql.NpgsqlException ex)
+                {
+                    status = false;
+                    Console.WriteLine(ex.Message);
+                }
+
+                for (int i = 0; i < costs.Count(); i++)
+                {
+                    Data.Add(new Dictionary<string, string>());
+                    Data[i].Add("costs", costs[i]);
+                    Data[i].Add("landlord", landlord[i]);
+                    Data[i].Add("room_name", room_name[i]);
+                    Data[i].Add("square", square[i]);
+                    Data[i].Add("address", address[i]);
+                }
+            }
+            else
+            {
+                char[] delimiterChars = { '=', '&' };
+                string[] words = data.Content.Split(delimiterChars);
+                Console.WriteLine("square: {0}, price: {1}, location: {2}, name: {3}, creator: {4}", words[1], words[3], words[5], words[7], words[9]);
+                try
+                {
+                    using (var conn = new NpgsqlConnection(connString))
+                    {
+                        conn.Open();
+                        using (var cmd = new NpgsqlCommand("insert into room_cost values ("+ words[1] +", '"+ words[5] +"',"+ words[3] + ");", conn))
+                        if (cmd.ExecuteNonQuery() == 1)
+                        {
+                            status = true;
+                        }
+                        using (var cmd = new NpgsqlCommand("insert into room values(" + words[3] + ", '" + words[9] + "','" + words[7] + "');", conn))
+                       if (cmd.ExecuteNonQuery() == 1)
+                       {
+                         status = true;
+                       }
+                        conn.Close();
+                    }
+                }
+                catch (Npgsql.NpgsqlException ex)
+                {
+                    status = false;
+                    Console.WriteLine(ex.Message);
+                }
+            }
+            //Формирование запроса 
+            string StatusCode;
+            string StatusText;
+            if (status)
+            {
+                StatusCode = "200";
+                StatusText = "Ok";
+                JSON["status"] = "success";
+            }
+            else
+            {
+                StatusCode = "400";
+                StatusText = "BadRequest";
+                JSON["status"] = "fail";
+            }
+           
+           
+            places place_data = new places
+            {
+                status = JSON["status"],
+                response = Data
+            };
+            HttpResponse response = new HttpResponse
+            {
+                ReasonPhrase = StatusText,
+                StatusCode = StatusCode,
+                ContentAsUTF8 = JsonConvert.SerializeObject(place_data, Formatting.Indented)
+
+
+            };
+            return response;
+        }
+        public static HttpResponse APlaсesupdate(String data)
+        {
+            char[] delimiterChars = { '=', '&' };
+            string[] words = data.Split(delimiterChars);
+            Console.WriteLine("square: {0}, price: {1}, location: {2}, name: {3}, creator: {4}", words[1], words[3], words[5], words[7], words[9]);
+            bool status = false;//true - успех 
+            //Формирование запроса 
+            string StatusCode;
+            string StatusText;
+            Dictionary<string, string> JSON_local = new Dictionary<string, string>
+             {
+            { "status", "fail" },
+
+            };
+            UPDATE room_cost SET quare = 10000, address = 'lgkn', costs = 50000 where costs = 10000;
+            try
+            {
+                using (var conn = new NpgsqlConnection(connString))
+                {
+                    conn.Open();
+                    using (var cmd = new NpgsqlCommand("UPDATE room_cost SET quare = " + words[1] + ", address = '" + words[5] + "', costs =" + words[3] + ");", conn))
+                        if (cmd.ExecuteNonQuery() == 1)
+                        {
+                            status = true;
+                        }
+                    using (var cmd = new NpgsqlCommand("insert into room values(" + words[3] + ", '" + words[9] + "','" + words[7] + "');", conn))
+                        if (cmd.ExecuteNonQuery() == 1)
+                        {
+                            status = true;
+                        }
+                    conn.Close();
+                }
+            }
+            catch (Npgsql.NpgsqlException ex)
+            {
+                status = false;
+                Console.WriteLine(ex.Message);
+            }
+            if (status)
+            {
+                StatusCode = "200";
+                StatusText = "Ok";
+                JSON_local["status"] = "success";
+            }
+            else
+            {
+                StatusCode = "400";
+                StatusText = "BadRequest";
+                JSON_local["status"] = "fail";
+            }
+            HttpResponse response = new HttpResponse
+            {
+                ReasonPhrase = StatusText,
+                StatusCode = StatusCode,
+                ContentAsUTF8 = JsonConvert.SerializeObject(JSON_local, Formatting.Indented)
+
+
+            };
+            return response;
+        }//еще не доделано
+
+        public static HttpResponse AEvents(String data)
+        {
+            bool status = false;//true - успех 
+            List<string> eventName = new List<string>();
+            List<string> organizer = new List<string>();
+            List<string> event_date = new List<string>();
+            List<string> room_name = new List<string>();
+            List<string> completed = new List<string>();
             try
             {
 
                 using (var conn = new NpgsqlConnection(connString))
                 {
                     conn.Open();
-                    using (var cmd = new NpgsqlCommand(" SELECT r.costs, r.landlord, r.room_name, rc.quare, rc.address FROM room r join room_cost rc on r.costs = rc.costs;", conn))
+                    using (var cmd = new NpgsqlCommand(" SELECT * from events where completed = false; ", conn))
                     using (var reader = cmd.ExecuteReader())
                         while (reader.Read())
                         {
-                            costs.Add((reader.GetInt32(0)).ToString());
-                            landlord.Add(reader.GetString(1));
-                            room_name.Add(reader.GetString(2));
-                            square.Add((reader.GetInt32(3)).ToString());
-                            address.Add(reader.GetString(4));
+                            eventName.Add(reader.GetString(0));
+                            organizer.Add(reader.GetString(1));
+                            event_date.Add(reader.GetDate(2).ToString());
+                            room_name.Add(reader.GetString(3));
+                            completed.Add(reader.GetBoolean(4).ToString());
                             /*JSON_places["costs"] = (reader.GetInt32(0)).ToString();//costs
                             JSON_places["landlord"] = reader.GetString(1);//landlord
                             JSON_places["room_name"] = reader.GetString(2);//room_name
@@ -301,62 +471,24 @@ namespace server
             }
             List<Dictionary<string, string>> Data = new List<Dictionary<string, string>>();
             ListDictionary list = new ListDictionary();
-            for (int i = 0; i < costs.Count(); i++)
+            for (int i = 0; i < eventName.Count(); i++)
             {
                 Data.Add(new Dictionary<string, string>());
-                Data[i].Add("costs", costs[i]);
-                Data[i].Add("landlord", landlord[i]);
+                Data[i].Add("event_name", eventName[i]);
+                Data[i].Add("organizer", organizer[i]);
+                Data[i].Add("event_date", event_date[i]);
                 Data[i].Add("room_name", room_name[i]);
-                Data[i].Add("square", square[i]);
-                Data[i].Add("address", address[i]);
             }
             places place_data = new places
             {
                 status = JSON["status"],
                 response = Data
             };
-            string data_json = JsonConvert.SerializeObject(place_data, Formatting.Indented);
-            Console.WriteLine(data_json);
             HttpResponse response = new HttpResponse
             {
                 ReasonPhrase = StatusText,
                 StatusCode = StatusCode,
                 ContentAsUTF8 = JsonConvert.SerializeObject(place_data, Formatting.Indented)
-
-
-            };
-            return response;
-        }
-        public static HttpResponse APlaсesupdate(String data)
-        {
-            char[] delimiterChars = { '=', '&' };
-            string[] words = data.Split(delimiterChars);
-            bool status = false;//true - успех 
-            //Формирование запроса 
-            string StatusCode;
-            string StatusText;
-            Dictionary<string, string> JSON_local = new Dictionary<string, string>
-        {
-            { "status", "fail" },
-
-        };
-            if (status)
-            {
-                StatusCode = "200";
-                StatusText = "Ok";
-                JSON_local["status"] = "success";
-            }
-            else
-            {
-                StatusCode = "400";
-                StatusText = "BadRequest";
-                JSON_local["status"] = "fail";
-            }
-            HttpResponse response = new HttpResponse
-            {
-                ReasonPhrase = StatusText,
-                StatusCode = StatusCode,
-                ContentAsUTF8 = JsonConvert.SerializeObject(JSON_local, Formatting.Indented)
 
 
             };
