@@ -36,16 +36,28 @@ namespace server
                     break;
                 case "/api/placesupdate":
                     Console.WriteLine("placesupdate");
-                    //return APlaсesupdate(request.Content);
+                    return APlaсesupdate(request.Content);
                     break;
                 case "/api/events":
                     Console.WriteLine("events");
-                    return AEvents(request.Content);
+                    return AEvents(request);
                     break;
-                /*case "/api/placesupdate":
-                    Console.WriteLine("places");
-                    return APlaсesupdate(request.Content);
-                    break;*/
+                case "/api/placesdelete":
+                    Console.WriteLine("placesdelete");
+                    return APlaсesdelete(request.Content);
+                    break;
+                case "/api/eventsdelete":
+                    Console.WriteLine("eventsdelete");
+                    return AEventsdelete(request.Content);
+                    break;
+                case "/api/eventsupdate":
+                    Console.WriteLine("eventsupdate");
+                    return AEventsupdate(request.Content);
+                    break;
+                case "/api/subscribe":
+                    Console.WriteLine("eventsupdate");
+                    return ASubscribe(request.Content);
+                    break;
                 default:
                     Console.WriteLine("Default case");
                     break;
@@ -96,7 +108,7 @@ namespace server
                         cmd.Parameters.AddWithValue("login", words[1]);
                         cmd.Parameters.AddWithValue("password", HashMD5(words[3]));
                         cmd.Parameters.AddWithValue("name", words[5]);
-                        cmd.Parameters.AddWithValue("email", words[7]);
+                        cmd.Parameters.AddWithValue("email", words[7].Replace("%40", "@"));
                     }
                     if (cmd.ExecuteNonQuery() == 1)
                     {
@@ -122,7 +134,7 @@ namespace server
             }
             else
             {
-                StatusCode = "400";
+                StatusCode = "200";
                 StatusText = "BadRequest";
                 JSON["status"] = "fail";
             }
@@ -180,7 +192,7 @@ namespace server
                     }
                     if (result == "")
                     {
-                        using (var cmd = new NpgsqlCommand(" SELECT  password_organizers FROM organizerr WHERE login_organizers = '" + words[1] + "';", conn))
+                        using (var cmd = new NpgsqlCommand(" SELECT  password_organizers FROM organizer WHERE login_organizers = '" + words[1] + "';", conn))
                         using (var reader = cmd.ExecuteReader())
                             while (reader.Read())
                             {
@@ -213,7 +225,7 @@ namespace server
             }
             else
             {
-                StatusCode = "400";
+                StatusCode = "200";
                 StatusText = "BadRequest";
                 JSON["status"] = "fail";
             }
@@ -264,7 +276,7 @@ namespace server
                     using (var conn = new NpgsqlConnection(connString))
                     {
                         conn.Open();
-                        using (var cmd = new NpgsqlCommand(" SELECT r.costs, r.landlord, r.room_name, rc.quare, rc.address FROM room r join room_cost rc on r.costs = rc.costs;", conn))
+                        using (var cmd = new NpgsqlCommand(" select rc.costs_for_1, r.landlord, r.room_name,rc.square, r.address from room r inner join room_cost rc on r.address = rc.address ;", conn))
                         using (var reader = cmd.ExecuteReader())
                             while (reader.Read())
                             {
@@ -304,16 +316,16 @@ namespace server
                     using (var conn = new NpgsqlConnection(connString))
                     {
                         conn.Open();
-                        using (var cmd = new NpgsqlCommand("insert into room_cost values ("+ words[1] +", '"+ words[5] +"',"+ words[3] + ");", conn))
-                        if (cmd.ExecuteNonQuery() == 1)
-                        {
-                            status = true;
-                        }
-                        using (var cmd = new NpgsqlCommand("insert into room values(" + words[3] + ", '" + words[9] + "','" + words[7] + "');", conn))
-                       if (cmd.ExecuteNonQuery() == 1)
-                       {
-                         status = true;
-                       }
+                        using (var cmd = new NpgsqlCommand("insert into room_cost values ('" + words[5] + "', '" + words[1] + "'," + words[3] + ");", conn))
+                            if (cmd.ExecuteNonQuery() == 1)
+                            {
+                                status = true;
+                            }
+                        using (var cmd = new NpgsqlCommand("insert into room values('" + words[5] + "', '" + words[9] + "','" + words[7] + "');", conn))
+                            if (cmd.ExecuteNonQuery() == 1)
+                            {
+                                status = true;
+                            }
                         conn.Close();
                     }
                 }
@@ -334,12 +346,12 @@ namespace server
             }
             else
             {
-                StatusCode = "400";
+                StatusCode = "200";
                 StatusText = "BadRequest";
                 JSON["status"] = "fail";
             }
-           
-           
+
+
             places place_data = new places
             {
                 status = JSON["status"],
@@ -369,18 +381,13 @@ namespace server
             { "status", "fail" },
 
             };
-            UPDATE room_cost SET quare = 10000, address = 'lgkn', costs = 50000 where costs = 10000;
+
             try
             {
                 using (var conn = new NpgsqlConnection(connString))
                 {
                     conn.Open();
-                    using (var cmd = new NpgsqlCommand("UPDATE room_cost SET quare = " + words[1] + ", address = '" + words[5] + "', costs =" + words[3] + ");", conn))
-                        if (cmd.ExecuteNonQuery() == 1)
-                        {
-                            status = true;
-                        }
-                    using (var cmd = new NpgsqlCommand("insert into room values(" + words[3] + ", '" + words[9] + "','" + words[7] + "');", conn))
+                    using (var cmd = new NpgsqlCommand("UPDATE room_cost SET square = '" + words[1] + "', costs_for_1 =" + words[3] + "where address = '" + words[5] + "';", conn))
                         if (cmd.ExecuteNonQuery() == 1)
                         {
                             status = true;
@@ -401,7 +408,7 @@ namespace server
             }
             else
             {
-                StatusCode = "400";
+                StatusCode = "200";
                 StatusText = "BadRequest";
                 JSON_local["status"] = "fail";
             }
@@ -414,38 +421,49 @@ namespace server
 
             };
             return response;
-        }//еще не доделано
-
-        public static HttpResponse AEvents(String data)
+        }
+        public static HttpResponse APlaсesdelete(String data)
         {
+            char[] delimiterChars = { '=', '&' };
+            string[] words = data.Split(delimiterChars);
+            Console.WriteLine("name: {0}", words[1]);
             bool status = false;//true - успех 
-            List<string> eventName = new List<string>();
-            List<string> organizer = new List<string>();
-            List<string> event_date = new List<string>();
-            List<string> room_name = new List<string>();
-            List<string> completed = new List<string>();
+            int answer = 1;
+            //Формирование запроса 
+            string StatusCode;
+            string StatusText;
+            Dictionary<string, string> JSON_local = new Dictionary<string, string>
+             {
+            { "status", "fail" },
+
+            };
+
             try
             {
-
                 using (var conn = new NpgsqlConnection(connString))
                 {
                     conn.Open();
-                    using (var cmd = new NpgsqlCommand(" SELECT * from events where completed = false; ", conn))
+                    using (var cmd = new NpgsqlCommand(" select check_dates();", conn))
+                    {
+                        using (var reader = cmd.ExecuteReader())
+                        {
+
+                        }
+                    }
+                    using (var cmd = new NpgsqlCommand("select delete_room('" + words[1] + "');", conn))
                     using (var reader = cmd.ExecuteReader())
                         while (reader.Read())
                         {
-                            eventName.Add(reader.GetString(0));
-                            organizer.Add(reader.GetString(1));
-                            event_date.Add(reader.GetDate(2).ToString());
-                            room_name.Add(reader.GetString(3));
-                            completed.Add(reader.GetBoolean(4).ToString());
-                            /*JSON_places["costs"] = (reader.GetInt32(0)).ToString();//costs
-                            JSON_places["landlord"] = reader.GetString(1);//landlord
-                            JSON_places["room_name"] = reader.GetString(2);//room_name
-                            JSON_places["square"] = (reader.GetInt32(3)).ToString();//square
-                            JSON_places["address"] = reader.GetString(4);//address*/
+                            answer = reader.GetInt32(0);
+
                         }
-                    status = true;
+                    Console.WriteLine(answer);
+                    if (answer == 0)
+                        status = true;
+                    else
+                    {
+                        status = false;
+                    }
                     conn.Close();
                 }
             }
@@ -454,9 +472,115 @@ namespace server
                 status = false;
                 Console.WriteLine(ex.Message);
             }
-            //Формирование запроса 
+            if (status)
+            {
+                StatusCode = "200";
+                StatusText = "Ok";
+                JSON_local["status"] = "success";
+            }
+            else
+            {
+                StatusCode = "200";
+                StatusText = "BadRequest";
+                JSON_local["status"] = "fail";
+            }
+            HttpResponse response = new HttpResponse
+            {
+                ReasonPhrase = StatusText,
+                StatusCode = StatusCode,
+                ContentAsUTF8 = JsonConvert.SerializeObject(JSON_local, Formatting.Indented)
+
+
+            };
+            return response;
+        }
+        public static HttpResponse AEvents(HttpRequest data)
+        {
+            bool status = false;//true - успех 
+            List<string> eventName = new List<string>();
+            List<string> organizer = new List<string>();
+            List<string> event_date = new List<string>();
+            List<string> room_name = new List<string>();
+            List<string> completed = new List<string>();
+            List<string> event_costs = new List<string>();
             string StatusCode;
             string StatusText;
+            int answer = -1;
+            List<Dictionary<string, string>> Data = new List<Dictionary<string, string>>();
+            ListDictionary list = new ListDictionary();
+            if (data.Method != "POST")
+            {
+                try
+                {
+
+                    using (var conn = new NpgsqlConnection(connString))
+                    {
+                        conn.Open();
+                        using (var cmd = new NpgsqlCommand(" SELECT * from events where completed = false; ", conn))
+                        using (var reader = cmd.ExecuteReader())
+                            while (reader.Read())
+                            {
+                                eventName.Add(reader.GetString(0));
+                                organizer.Add(reader.GetString(1));
+                                event_date.Add(reader.GetDate(2).ToString());
+                                room_name.Add(reader.GetString(3));
+                                completed.Add(reader.GetBoolean(4).ToString());
+                                event_costs.Add(reader.GetInt32(5).ToString());
+                            }
+                        status = true;
+                        conn.Close();
+                    }
+                }
+                catch (Npgsql.NpgsqlException ex)
+                {
+                    status = false;
+                    Console.WriteLine(ex.Message);
+                }
+                for (int i = 0; i < eventName.Count(); i++)
+                {
+                    Data.Add(new Dictionary<string, string>());
+                    Data[i].Add("event_name", eventName[i]);
+                    Data[i].Add("organizer", organizer[i]);
+                    Data[i].Add("event_date", event_date[i]);
+                    Data[i].Add("room_name", room_name[i]);
+                    Data[i].Add("event_costs", event_costs[i]);
+                }
+            }
+            else
+            {
+                char[] delimiterChars = { '=', '&' };
+                string[] words = data.Content.Split(delimiterChars);
+                Console.WriteLine("eventName: {0}, room_name: {1}, organizer: {2}, event_date: {3}, event_cost: {4}", words[1], words[3], words[5], words[7], words[9]);
+                try
+                {
+                    using (var conn = new NpgsqlConnection(connString))
+                    {
+                        conn.Open();
+                        using (var cmd = new NpgsqlCommand("select insert_events('" + words[1] + "', '" + words[5] + "','" + words[7] + "', '" + words[3] + "', '" + words[9] + "');", conn))
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                answer = reader.GetInt32(0);
+
+                            }
+                        }
+
+                        conn.Close();
+                    }
+                }
+                catch (Npgsql.NpgsqlException ex)
+                {
+                    status = false;
+                    Console.WriteLine(ex.Message);
+                }
+                Console.WriteLine(answer);
+                if (answer == 0)
+                    status = true;
+                else status = false;
+            }
+            //Формирование запроса 
+
             if (status)
             {
                 StatusCode = "200";
@@ -465,20 +589,12 @@ namespace server
             }
             else
             {
-                StatusCode = "400";
+                StatusCode = "200";
                 StatusText = "BadRequest";
                 JSON["status"] = "fail";
             }
-            List<Dictionary<string, string>> Data = new List<Dictionary<string, string>>();
-            ListDictionary list = new ListDictionary();
-            for (int i = 0; i < eventName.Count(); i++)
-            {
-                Data.Add(new Dictionary<string, string>());
-                Data[i].Add("event_name", eventName[i]);
-                Data[i].Add("organizer", organizer[i]);
-                Data[i].Add("event_date", event_date[i]);
-                Data[i].Add("room_name", room_name[i]);
-            }
+
+
             places place_data = new places
             {
                 status = JSON["status"],
@@ -489,6 +605,168 @@ namespace server
                 ReasonPhrase = StatusText,
                 StatusCode = StatusCode,
                 ContentAsUTF8 = JsonConvert.SerializeObject(place_data, Formatting.Indented)
+
+
+            };
+            return response;
+        }
+        public static HttpResponse AEventsdelete(String data)
+        {
+            char[] delimiterChars = { '=', '&' };
+            string[] words = data.Split(delimiterChars);
+            Console.WriteLine("name: {0}", words[1]);
+            bool status = false;//true - успех 
+            int answer = 1;
+            //Формирование запроса 
+            string StatusCode;
+            string StatusText;
+            Dictionary<string, string> JSON_local = new Dictionary<string, string>
+             {
+            { "status", "fail" },
+
+            };
+
+            try
+            {
+                using (var conn = new NpgsqlConnection(connString))
+                {
+                    conn.Open();
+                    using (var cmd = new NpgsqlCommand("DELETE FROM events WHERE event_name = '" + words[1] + "';", conn))
+                        if (cmd.ExecuteNonQuery() == 1)
+                        {
+                            status = true;
+                        }
+                    conn.Close();
+                }
+            }
+            catch (Npgsql.NpgsqlException ex)
+            {
+                status = false;
+                Console.WriteLine(ex.Message);
+            }
+            if (status)
+            {
+                StatusCode = "200";
+                StatusText = "Ok";
+                JSON_local["status"] = "success";
+            }
+            else
+            {
+                StatusCode = "200";
+                StatusText = "BadRequest";
+                JSON_local["status"] = "fail";
+            }
+            HttpResponse response = new HttpResponse
+            {
+                ReasonPhrase = StatusText,
+                StatusCode = StatusCode,
+                ContentAsUTF8 = JsonConvert.SerializeObject(JSON_local, Formatting.Indented)
+
+
+            };
+            return response;
+        }
+        public static HttpResponse AEventsupdate(String data)
+        {
+            char[] delimiterChars = { '=', '&' };
+            string[] words = data.Split(delimiterChars);
+            Console.WriteLine("eventname: {0}, roomname: {1}, organizer: {2}, date: {3}, costs: {3}", words[1], words[3], words[5], words[7], words[9]);
+            bool status = false;//true - успех 
+            //Формирование запроса 
+            string StatusCode;
+            string StatusText;
+            Dictionary<string, string> JSON_local = new Dictionary<string, string>
+             {
+            { "status", "fail" },
+
+            };
+            // UPDATE events SET event_name = 'Сдача БД', event_date = '2018-12-26', completed = false, event_costs = 400 where event_name = 'Сдача БД';
+
+            try
+            {
+                using (var conn = new NpgsqlConnection(connString))
+                {
+                    conn.Open();
+                    using (var cmd = new NpgsqlCommand("UPDATE events SET event_name ='" + words[1] + "', event_date = '" + words[7] + "', completed = false, event_costs = " + words[9] + " where event_name = '" + words[1] + "';", conn))
+                        if (cmd.ExecuteNonQuery() == 1)
+                        {
+                            status = true;
+                        }
+                    conn.Close();
+                }
+            }
+            catch (Npgsql.NpgsqlException ex)
+            {
+                status = false;
+                Console.WriteLine(ex.Message);
+            }
+            if (status)
+            {
+                StatusCode = "200";
+                StatusText = "Ok";
+                JSON_local["status"] = "success";
+            }
+            else
+            {
+                StatusCode = "200";
+                StatusText = "BadRequest";
+                JSON_local["status"] = "fail";
+            }
+            HttpResponse response = new HttpResponse
+            {
+                ReasonPhrase = StatusText,
+                StatusCode = StatusCode,
+                ContentAsUTF8 = JsonConvert.SerializeObject(JSON_local, Formatting.Indented)
+
+
+            };
+            return response;
+        }
+        public static HttpResponse ASubscribe(String data)
+        {
+            string StatusCode;
+            string StatusText;
+            bool status = false;
+            char[] delimiterChars = { '=', '&' };
+            string[] words = data.Split(delimiterChars);
+            Console.WriteLine("name: {0}, mail: {1}, event_name: {2}", words[1], words[3], words[5]);
+
+            try
+            {
+                using (var conn = new NpgsqlConnection(connString))
+                {
+                    conn.Open();
+                    using (var cmd = new NpgsqlCommand("insert into visitors values('" + words[1] + "', '" + words[3].Replace("%40", "@") + "','" + words[5] + "');", conn))
+                        if (cmd.ExecuteNonQuery() == 1)
+                        {
+                            status = true;
+                        }
+
+                    conn.Close();
+                }
+            }
+            catch (Npgsql.NpgsqlException ex)
+            {
+                status = false;
+                Console.WriteLine(ex.Message);
+            }
+            if (status)
+            {
+                StatusCode = "200";
+                StatusText = "Ok";
+                JSON["status"] = "success";
+            }
+            else
+            {
+                StatusCode = "200";
+                StatusText = "BadRequest";
+                JSON["status"] = "fail";
+            }
+            HttpResponse response = new HttpResponse
+            {
+                ReasonPhrase = StatusText,
+                StatusCode = StatusCode,
+                ContentAsUTF8 = JsonConvert.SerializeObject(JSON, Formatting.Indented)
 
 
             };
